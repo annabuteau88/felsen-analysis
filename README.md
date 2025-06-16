@@ -1,6 +1,6 @@
-# myphdlib
+# felsen-analysis
 
-This is a repository for the scientific software and analysis documentation that I produced during my graduate research.
+This is an updated repository for the scientific software and analysis documentation for the Felsen lab, forked from jbhunt/myphdlib.
 
 ## Datasets ##
 The processed data for each session is stored in an H5 file named `output.hdf`. Within this file, there are datasets grouped by the associated data processing step.
