@@ -1,5 +1,7 @@
 import h5py
 import numpy as np
+from interface.ephys import Population
+
 
 class AnalysisObject():
     """
@@ -36,3 +38,10 @@ class AnalysisObject():
                 return True
             except KeyError:
                 return False
+    
+    def _population(self):
+        """
+        Creates instance of Population class & assigns the instance to an attribute called population
+        """
+        self.population = Population(self)
+        return self.population
