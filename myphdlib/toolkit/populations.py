@@ -2,6 +2,10 @@ from toolkit.process import AnalysisObject
 from interface.ephys import Population
 import unit_localizer as ul
 import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from scipy.ndimage.filters import gaussian_filter1d
+
 
 def definePremotorPopulation(h5file, clusterFile):
     """
@@ -78,17 +82,16 @@ def defineVisualPopulation(h5file, clusterFile):
                                 visualUnitsZeta.append(unit)
     return visualUnitsZeta
 
-def createTrialArray(h5file, timeBins, units):
+def createTrialArray(h5file, timeBins, units, trials):
     """
     This function creates a list of len(trials) where each line is a units x 11 time bins array of spiking activity 
     This is the first step to running a PCA analysis that looks at population activity over time
     """
-    trials = list()
+    trialList = list()
     session = AnalysisObject(h5file)
     #population = Population(session)
     population = session._population()
-    saccades = session.load('saccades/predicted/left/timestamps')[:, 0]
-    for trial in saccades:
+    for trial in trials:
         unitArray = np.zeros((len(units), 10))
         ind = 0
         for unit in population:
@@ -128,10 +131,10 @@ def createTrialArray(h5file, timeBins, units):
                 fr = [a, b, c, d, e, f, g, h, i, j]
                 unitArray[ind, :] = fr
                 ind = ind + 1
-        trials.append(unitArray)
-    return trials
+        trialList.append(unitArray)
+    return trialList
 
-def specifyTrialTypes(h5file, trials, saccade=True): 
+def specifyTrialTypes(h5file, saccade=True): 
     """
     Lets you specify what different trial types you want to measure population responses to
     """
@@ -168,23 +171,25 @@ def z_score(X):
     return Xz
 
 
-def trialAveragedPCA(trials, t_type_ind, trial_types, n_components):
+def trialAveragedPCA(trialList, t_type_ind, trial_types, n_components):
     """
     A form of PCA that finds principal components across time bins around the time of a trial
     First computes average of trials of each type, then reduces dimensions
     Returns a 3D array with the average population activity for each component for each trial type
     """
     trial_averages = []
+    trial_size = trialList[0].shape[1]
     for ind in t_type_ind:
-        trial_averages.append(np.array(trials)[ind].mean(axis=0))
+        trial_averages.append(np.array(trialList)[ind].mean(axis=0))
     Xa = np.hstack(trial_averages)
     Xa = z_score(Xa) #Xav_sc = center(Xav)
     pca = PCA(n_components=n_components)
     Xa_p = pca.fit_transform(Xa.T).T
-    pcs = np.zeros((n_components 10, 2))
+    pcs = np.zeros((n_components, 10, 2))
     for comp in range(n_components):
         for kk, type in enumerate(trial_types):
             x = Xa_p[comp, kk * trial_size :(kk+1) * trial_size]
             x = gaussian_filter1d(x, sigma=3)
             pcs[comp, :, kk] = x
     return pcs
+
