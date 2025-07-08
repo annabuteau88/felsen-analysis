@@ -8,9 +8,7 @@ def definePremotorPopulation(h5file, clusterFile):
     This function filters your population of neurons and pulls out premotor neurons based on ZETA test results
     """
     session = AnalysisObject(h5file)
-    population = Population(session)
     labels = session.load('nptracer/labels')
-    transformed = session.load('nptracer/transformed')
     brainAreas = ul.translateBrainAreaIdentities(labels) 
     #spikeClustersFile = session.home.joinpath('ephys/sorting/manual/spike_clusters.npy') #fix
     spikeClustersFile = clusterFile
@@ -48,9 +46,7 @@ def defineVisualPopulation(h5file, clusterFile):
     This function filters your population of neurons and pulls out visual neurons based on ZETA test results
     """
     session = AnalysisObject(h5file)
-    population = Population(session)
     labels = session.load('nptracer/labels')
-    transformed = session.load('nptracer/transformed')
     #spikeClustersFile = session.home.joinpath('ephys/sorting/manual/spike_clusters.npy')
     spikeClustersFile = clusterFile
     uniqueSpikeClusters = np.unique(np.load(spikeClustersFile))
@@ -134,3 +130,61 @@ def createTrialArray(h5file, timeBins, units):
                 ind = ind + 1
         trials.append(unitArray)
     return trials
+
+def specifyTrialTypes(h5file, trials, saccade=True): 
+    """
+    Lets you specify what different trial types you want to measure population responses to
+    """
+    session = AnalysisObject(h5file)
+    if saccade==True:
+        trial_type_tmp = session.load('saccades/predicted/left/labels') #contra = 1, ipsi = -1
+    elif saccade==False:
+        tts = session.load('stimuli/dg/probe/tts')
+        typeCode = list() #perisaccadic = 0, extrasaccadic = 2
+        for t in tts:
+            if abs(t) < 0.1:
+                typeCode.append(0)
+            else:
+                typeCode.append(2)
+        trial_type_tmp = np.array(typeCode)
+    trial_type = list()
+    for element in trial_type_tmp:
+        if element == -1:
+            trial_type.append('Ipsi')
+        elif element == 1:
+            trial_type.append('Contra')
+        elif element == 0:
+            trial_type.append('Perisaccadic')
+        elif element == 2:
+            trial_type.append('Extrasaccadic')
+    trial_types = np.unique(trial_type)
+    t_type_ind = [np.argwhere(np.array(trial_type) == t_type)[:, 0] for t_type in trial_types]
+    return t_type_ind, trial_types
+
+def z_score(X):
+    # X: ndarray, shape (n_features, n_samples)
+    ss = StandardScaler(with_mean=True, with_std=True)
+    Xz = ss.fit_transform(X.T).T
+    return Xz
+
+
+def trialAveragedPCA(trials, t_type_ind, trial_types, n_components):
+    """
+    A form of PCA that finds principal components across time bins around the time of a trial
+    First computes average of trials of each type, then reduces dimensions
+    Returns a 3D array with the average population activity for each component for each trial type
+    """
+    trial_averages = []
+    for ind in t_type_ind:
+        trial_averages.append(np.array(trials)[ind].mean(axis=0))
+    Xa = np.hstack(trial_averages)
+    Xa = z_score(Xa) #Xav_sc = center(Xav)
+    pca = PCA(n_components=n_components)
+    Xa_p = pca.fit_transform(Xa.T).T
+    pcs = np.zeros((n_components 10, 2))
+    for comp in range(n_components):
+        for kk, type in enumerate(trial_types):
+            x = Xa_p[comp, kk * trial_size :(kk+1) * trial_size]
+            x = gaussian_filter1d(x, sigma=3)
+            pcs[comp, :, kk] = x
+    return pcs
