@@ -230,3 +230,21 @@ def trialAveragedPCA(trialList, t_type_ind, trial_types, n_components):
             pcs[comp, :, kk] = x
     return pcs
 
+def getUnitDepth(h5file, premotorUnits, visualUnits, visuomotorUnits, depthDict=None):
+    """
+    Function that returns the coordinates for each unit in a recording & a list of identities for easy indexing
+    """
+    session = AnalysisObject(h5file)
+    points = session.load('nptracer/points')
+    population = session._population()
+    if depthDict is None:
+        depthDict = {identity:[] for identity in ['premotor', 'visual', 'visuomotor']}
+    for i, unit in enumerate(population):
+        depth = points[i, 2]
+        if unit.cluster in premotorUnits:
+            depthDict['premotor'].append(depth)
+        elif unit.cluster in visualUnits:
+            depthDict['visual'].append(depth)
+        elif unit.cluster in visuomotorUnits:
+            depthDict['visuomotor'].append(depth)
+    return depthDict
