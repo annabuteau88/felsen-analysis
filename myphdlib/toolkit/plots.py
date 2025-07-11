@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+from toolkit.process import AnalysisObject
+import numpy as np
 
 def plotPCA3D(pcs, trial_types, dimensions, stimIndex):
     """
@@ -17,3 +19,28 @@ def plotPCA3D(pcs, trial_types, dimensions, stimIndex):
     ax.set_zlabel('PC' + str(dimensions[2]))
     ax.legend()
     return ax
+
+def plotPETH(h5file, unitList, events, color, start, stop, step, avgOnly=True, fig=None, ax=None):
+    """
+    Takes ephys & event inputs and plots a basic PETH of each unit with an average
+    """
+    if fig is None:
+        fig, ax = plt.subplots()
+    frList = list()
+    session = AnalysisObject(h5file)
+    population = session._population()
+    for unit in population:
+        if unit.cluster in unitList:
+            t, fr = unit.peth(events, (start, stop), step)
+            baseline = np.mean(fr[0:10])
+            corrected = fr - baseline
+            if avgOnly == False:
+                ax.plot(t, corrected, color=color, alpha=0.25)
+            frList.append(corrected)
+    frAvg = np.mean(frList, axis=0)
+    if avgOnly ==True:
+        ax.plot(t, frAvg, color=color)
+    else:
+        ax.plot(t, frAvg, color='k')
+
+    return fig, ax

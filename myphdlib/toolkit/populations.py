@@ -13,7 +13,8 @@ def definePremotorPopulation(h5file, clusterFile):
     """
     session = AnalysisObject(h5file)
     labels = session.load('nptracer/labels')
-    brainAreas = ul.translateBrainAreaIdentities(labels) 
+    brainAreas = ul.translateBrainAreaIdentities(labels, '/home/jbhunt/Downloads/structure_graph_with_sets.json') 
+
     #spikeClustersFile = session.home.joinpath('ephys/sorting/manual/spike_clusters.npy') #fix
     spikeClustersFile = clusterFile
     uniqueSpikeClusters = np.unique(np.load(spikeClustersFile))
@@ -44,6 +45,32 @@ def definePremotorPopulation(h5file, clusterFile):
                                 premotorUnitsZeta.append(unit)
 
     return premotorUnitsZeta
+
+def definePremotorPopulationExclusive(h5file, clusterFile):
+    """
+    This function defines the population of neurons that have only premotor and no visual activity
+    """
+    premotorUnitsExclusive = list()
+    premotorUnitsAll = definePremotorPopulation(h5file, clusterFile)
+    visualUnitsAll = defineVisualPopulation(h5file, clusterFile)
+    visuomotorUnits = defineVisuomotorPopulation(premotorUnitsAll, visualUnitsAll)
+    for unit in premotorUnitsAll:
+        if unit not in visuomotorUnits:
+            premotorUnitsExclusive.append(unit)
+    return premotorUnitsExclusive
+
+def defineVisualPopulationExclusive(h5file, clusterFile):
+    """
+    This function defines the population of neurons that have only premotor and no visual activity
+    """
+    visualUnitsExclusive = list()
+    premotorUnitsAll = definePremotorPopulation(h5file, clusterFile)
+    visualUnitsAll = defineVisualPopulation(h5file, clusterFile)
+    visuomotorUnits = defineVisuomotorPopulation(premotorUnitsAll, visualUnitsAll)
+    for unit in visualUnitsAll:
+        if unit not in visuomotorUnits:
+            visualUnitsExclusive.append(unit)
+    return visualUnitsExclusive
     
 def defineVisualPopulation(h5file, clusterFile):
     """
@@ -81,6 +108,16 @@ def defineVisualPopulation(h5file, clusterFile):
                                 unit = uniqueSpikeClusters[index]
                                 visualUnitsZeta.append(unit)
     return visualUnitsZeta
+
+def defineVisuomotorPopulation(premotorUnits, visualUnits):
+    """
+    This function finds which units are both visual and motor
+    """
+    visuomotorUnits = list()
+    for unit in premotorUnits:
+        if unit in visualUnits:
+            visuomotorUnits.append(unit)
+    return visuomotorUnits
 
 def createTrialArray(h5file, timeBins, units, trials):
     """
