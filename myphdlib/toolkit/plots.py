@@ -81,6 +81,6 @@ def plotUnitDepth(depthDict):
     plt.xticks([])
     ax.invert_yaxis()
     plt.yticks([0, 100, 200, 300], [0, 1, 2, 3])
-    ax.tick_params(axis='y', labelsize=12)
+    ax.tick_params(axis='y', labelsize=18)
     plt.ylabel('Unit Depth (mm)', fontsize=20)
     return fig, ax

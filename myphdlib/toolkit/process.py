@@ -45,3 +45,21 @@ class AnalysisObject():
         """
         self.population = Population(self)
         return self.population
+    
+    def listAllDatasets(self):
+        """
+        """
+
+        pathsInFile = list()
+        with h5py.File(self.hdf, 'r') as file:
+            file.visit(lambda name: pathsInFile.append(name))
+
+        datasetsInFile = list()
+        with h5py.File(self.hdf, 'r') as file:
+            for path in pathsInFile:
+                if type(file[path]) == h5py.Dataset:
+                    datasetsInFile.append(path)
+
+        #
+        for path in datasetsInFile:
+            print(path)
