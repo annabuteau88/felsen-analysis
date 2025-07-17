@@ -48,6 +48,7 @@ class AnalysisObject():
     
     def listAllDatasets(self):
         """
+        Easy way to access all the info in the h5file
         """
 
         pathsInFile = list()
