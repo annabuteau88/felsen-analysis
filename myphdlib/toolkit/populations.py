@@ -248,3 +248,24 @@ def getUnitDepth(h5file, premotorUnits, visualUnits, visuomotorUnits, depthDict=
         elif unit.cluster in visuomotorUnits:
             depthDict['visuomotor'].append(depth)
     return depthDict
+
+def getUnitCoords(h5file, premotorUnits, visualUnits, visuomotorUnits, coordDict=None):
+    """
+    Function that returns the coordinates for each unit in a recording & a list of identities for easy indexing
+    """
+    session = AnalysisObject(h5file)
+    points = session.load('nptracer/points')
+    population = session._population()
+    if coordDict is None:
+        coordDict = {identity:[] for identity in ['premotor', 'visual', 'visuomotor']}
+    for i, unit in enumerate(population):
+        x = points[i, 1]
+        y = points[i, 2]
+        coords = [x, y]
+        if unit.cluster in premotorUnits:
+            coordDict['premotor'].append(coords)
+        elif unit.cluster in visualUnits:
+            coordDict['visual'].append(coords)
+        elif unit.cluster in visuomotorUnits:
+            coordDict['visuomotor'].append(coords)
+    return coordDict

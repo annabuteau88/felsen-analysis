@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from toolkit.process import AnalysisObject
+import unit_localizer as ul
 import numpy as np
 import random
 
@@ -98,6 +99,29 @@ def plotUnitDepth(depthDict, saveFig=True):
         plt.savefig(f'unitDepth', format="svg")
     return fig, ax
 
+def plotUnitDepthOverBrain(coordDict, saveFig=True):
+    """
+    Uses 2D coordinates to plot unit location over real brain
+    """
+    ul.loadAllData(path='/home/jbhunt/Downloads/structure_graph_with_sets.json')
+    section = ul.VOLUME[900, :, :]
+    plt.imshow(np.transpose(section), cmap='Greys', vmin=0, vmax=255)
+    for i, point in enumerate(coordDict['premotor']):
+        plt.scatter(coordDict['premotor'][i][0] + random.uniform(0, 10), coordDict['premotor'][i][1], color='magenta', s=5)
+    for i, point in enumerate(coordDict['visual']):
+        plt.scatter(coordDict['visual'][i][0]+ random.uniform(0, 10), coordDict['visual'][i][1], color='limegreen', s=5)
+    for i, point in enumerate(coordDict['visuomotor']):
+        plt.scatter(coordDict['visuomotor'][i][0]+ random.uniform(0, 10), coordDict['visuomotor'][i][1], color='blueviolet', s=5, alpha=0.5)
+    plt.scatter(0, 0, s=15, color='magenta', label='Premotor')
+    plt.scatter(0, 0, s=15, color='limegreen', label='Visual')
+    plt.scatter(0, 0, s=15, color='blueviolet', label='Visuomotor')
+    plt.xticks([])
+    plt.yticks([])
+    plt.xlim(200, 1000)
+    plt.ylim(500, 0)
+    plt.legend(fontsize=12, loc='upper left')
+    return
+
 def plotRaster(eventTimes, spikeTimes, window, eventType):
     """
     Makes a raster plot for a given unit for a given event type
@@ -127,3 +151,4 @@ def plotRaster(eventTimes, spikeTimes, window, eventType):
     fig.set_figwidth(6)
 
     return fig, ax
+
