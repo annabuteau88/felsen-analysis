@@ -26,6 +26,26 @@ class AnalysisObject():
                     return obj
             except KeyError:
                 pass
+
+    def save(self, path, value, overwrite=True):
+        """
+        Helper function for easily saving data into the h5file
+        """
+        if self.hdf.exists() == False:
+            file = h5py.File(str(self.hdf), 'w')
+        else:
+            file = h5py.File(str(self.hdf), 'a')
+        #
+        if path in file.keys():
+            if overwrite:
+                del file[path]
+            else:
+                raise Exception(f'{path} dataset already exists')
+        #
+        dataset = file.create_dataset(path, value.shape, value.dtype, data=value)
+        #
+        file.close()        
+        return
     
     def hasDataset(self, path):
         """
@@ -64,3 +84,5 @@ class AnalysisObject():
         #
         for path in datasetsInFile:
             print(path)
+
+    

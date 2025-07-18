@@ -7,6 +7,30 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from scipy.ndimage.filters import gaussian_filter1d
 
 
+def defineQualityUnits(h5file, clusterFile):
+    """
+    This function filters all units by quality metrics and returns a list of unit cluster numbers assigned to good quality units
+    Not necessary to use if using one of the definePopulation functions as it is built in to those functions (ie definePremotorPopulation)
+    Helpful if you want to use all units in a recording, not just a predefined population, but want good quality units only
+    """
+    session = AnalysisObject(h5file)
+    population = session._population()
+    ampCutoff = session.load('metrics/ac')
+    presenceRatio = session.load('metrics/pr')
+    firingRate = session.load('metrics/fr')
+    isiViol = session.load('metrics/rpvr')
+    qualityLabels = session.load('metrics/ql')
+    qualityUnits = list()
+    for index, unit in enumerate(population):
+        if qualityLabels is not None and qualityLabels[index] in (0, 1):
+            continue
+        if ampCutoff[index] <= 0.1:
+            if presenceRatio[index] >= 0.9:
+             if firingRate[index] >= 0.2:
+                if isiViol[index] <= 0.5:
+                    qualityUnits.append(unit.cluster)
+    return qualityUnits
+
 def definePremotorPopulation(h5file, clusterFile):
     """
     This function filters your population of neurons and pulls out premotor neurons based on ZETA test results
