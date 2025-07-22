@@ -1,6 +1,7 @@
 import numpy as np
 from toolkit.process import AnalysisObject
 import math
+from scipy import stats
 
 
 def parseSaccadeType(h5file):
@@ -106,4 +107,66 @@ def calculateSaccadeEndPoint(h5file, saccades):
         endPoint = pose[endIndex, 0]
         endPoints.append(float(endPoint))
     return endPoints
+
+def computeNormalizedFiringRate(h5file, unitsToAnalyze, events, window):
+    """
+    Compute & Z-score the firing rate of all neurons for all saccades
+    """
+    session = AnalysisObject(h5file)
+    population = session._population()
+    FRlist = np.zeros((len(unitsToAnalyze), len(events)))
+    for i, event in enumerate(events):
+        j = 0
+        for unit in population:
+            if unit.cluster not in unitsToAnalyze:
+                continue
+            spikeTimes = unit.timestamps
+            start = events[i] + window[0]
+            end = events[i] + window[1]
+            mask = np.logical_and(spikeTimes > start, spikeTimes < end)
+            activity = len(spikeTimes[mask])/0.3
+            FRlist[j, i] = activity
+            j = j+1
+    z = stats.zscore(FRlist, axis=1, nan_policy='omit')
+    return z
+
+def binFiringRatesbyMetric(z, ampList, startList, endList, unit):
+    """
+    Puts firing rates for all saccades for a given unit into bins, split up by metrics
+    Preps data to plot a single unit example of firing rate by saccade metric
+    But we bin it so we can actually see stuff or else it looks gross and incomprehensible
+    Yes I know returning 6 things is a crime
+    """
+    ampAvg = list()
+    startAvg = list()
+    endAvg = list()
+    a = sorted(ampList)
+    s = sorted(startList)
+    e = sorted(endList)
+    lists = [ampList, startList, endList]
+    binStartA = list()
+    binStartS = list()
+    binStartE = list()
+    for i, feature in enumerate([a, s, e]):
+        bins = np.arange(0, len(feature), len(feature)/50)
+        for k in bins:
+            j = int(k)
+            values = feature[j:int(j+len(feature)/50)]
+            inds = list()
+            for value in values:
+                ind = np.where(lists[i] == value)[0]
+                if ind.shape != (0,):
+                    inds.append(ind)
+            data = z[unit, inds]
+            avg = np.nanmean(data)
+            if i == 0:
+                ampAvg.append(avg)
+                binStartA.append(np.min(values))
+            elif i == 1:
+                startAvg.append(avg)
+                binStartS.append(np.min(values))
+            elif i == 2:
+                endAvg.append(avg)
+                binStartE.append(np.min(values))
+    return ampAvg, startAvg, endAvg, binStartA, binStartS, binStartE
 
