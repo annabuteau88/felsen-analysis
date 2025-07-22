@@ -31,10 +31,10 @@ class AnalysisObject():
         """
         Helper function for easily saving data into the h5file
         """
-        if self.hdf.exists() == False:
-            file = h5py.File(str(self.hdf), 'w')
-        else:
-            file = h5py.File(str(self.hdf), 'a')
+        #if self.hdf.exists() == False:
+            #file = h5py.File(str(self.hdf), 'w')
+        #else:
+        file = h5py.File(str(self.hdf), 'a')
         #
         if path in file.keys():
             if overwrite:

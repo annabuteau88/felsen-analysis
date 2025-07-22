@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pyopenephys import File
 import pandas as pd
+from toolkit.process import AnalysisObject
+from zetapy import zetatest
+
 
 def plotRawNeuropixelsData(t2plot, folderPath, datPath, vmin=None, vmax=None):
     """
@@ -33,7 +36,7 @@ def plotRawNeuropixelsData(t2plot, folderPath, datPath, vmin=None, vmax=None):
     fig.colorbar(im)
     return fig, axs
 
-def runZetaTestForOpto(h5file, unitsToAnalyze, eventTimestamps, responseWindow):
+def runZetaTestForOpto(h5file, eventTimestamps, responseWindow, latencyMetric):
     """
     ZETA test to check if neurons are responsive to the opto stim
     """
@@ -41,47 +44,67 @@ def runZetaTestForOpto(h5file, unitsToAnalyze, eventTimestamps, responseWindow):
     population = session._population()
     tOffset = 0 - responseWindow[0]
     responseWindowAdjusted = np.array(responseWindow) + tOffset
-
     #
-    result = np.full([len(unitsToAnalyze), 3], np.nan)
+    result = np.full([len(population), 3], np.nan)
+    unitIndex = 0
     for i, unit in enumerate(population):
-        if unit.cluster not in unitsToAnalyze:
-            continue
-        # Skip if there are not enough spikes
-        if len(unit.timestamps) < minimumSpikeCount:
-            p, tLatency = np.nan, np.nan
+        p, dZeta, dRate = zetatest(
+            unit.timestamps,
+            eventTimestamps - tOffset,
+            dblUseMaxDur=np.max(responseWindowAdjusted),
+            tplRestrictRange=responseWindowAdjusted,
+            boolReturnRate=True,
+        )
+        allLatencies = dZeta['vecLatencies']
+
+        # NOTE: Sometimes this returns a list
+        if type(allLatencies) == list:
+            allLatencies = np.array(allLatencies)
+
+        # NOTE: Sometimes this returns a 2D array (single column)
+        if type(allLatencies) == np.ndarray and len(allLatencies.shape) == 2:
+            allLatencies = np.ravel(allLatencies)
 
         #
+        if latencyMetric == 'zenith':
+            tLatency = round(allLatencies[0] - tOffset, 3)
+        elif latencyMetric == 'peak':
+            tLatency = round(allLatencies[2] - tOffset, 3)
+        elif latencyMetric == 'onset':
+            tLatency = round(allLatencies[3] - tOffset, 3)
         else:
-            p, dZeta, dRate = zetatest(
-                unit.timestamps,
-                eventTimestamps - tOffset,
-                dblUseMaxDur=np.max(responseWindowAdjusted),
-                tplRestrictRange=responseWindowAdjusted,
-                boolReturnRate=True,
-            )
-            allLatencies = dZeta['vecLatencies']
-
-            # NOTE: Sometimes this returns a list
-            if type(allLatencies) == list:
-                allLatencies = np.array(allLatencies)
-
-            # NOTE: Sometimes this returns a 2D array (single column)
-            if type(allLatencies) == np.ndarray and len(allLatencies.shape) == 2:
-                allLatencies = np.ravel(allLatencies)
-
-            #
-            if latencyMetric == 'zenith':
-                tLatency = round(allLatencies[0] - tOffset, 3)
-            elif latencyMetric == 'peak':
-                tLatency = round(allLatencies[2] - tOffset, 3)
-            elif latencyMetric == 'onset':
-                tLatency = round(allLatencies[3] - tOffset, 3)
-            else:
-                tLatency = np.nan
+            tLatency = np.nan
+        result[unitIndex, :] = [unitIndex, tLatency, p]
+        unitIndex = unitIndex + 1
         
         #
-        result = np.array([unit.index, p, tLatency])
-        session.save(f'zeta/optostim/p', result[1])
-        session.save(f'zeta/optostim/latency', result[2])
+    session.save(f'zeta/optostim/p', result[:, 2])
+    session.save(f'zeta/optostim/latency', result[:, 1])
     return
+
+def defineOptoPopulation(h5file, clusterFile):
+    """
+    This function filters your population of neurons and pulls out premotor neurons based on ZETA test results
+    """
+    session = AnalysisObject(h5file)
+    spikeClustersFile = clusterFile
+    uniqueSpikeClusters = np.unique(np.load(spikeClustersFile))
+    zetaOpto = session.load('zeta/optostim/p')
+    ampCutoff = session.load('metrics/ac')
+    presenceRatio = session.load('metrics/pr')
+    firingRate = session.load('metrics/fr')
+    isiViol = session.load('metrics/rpvr')
+    qualityLabels = session.load('metrics/ql')
+    optoUnitsZeta = list()
+    for index, pVal in enumerate(zetaOpto):
+        if pVal < 0.05:
+            if qualityLabels is not None and qualityLabels[index] in (0, 1):
+                    continue
+            if ampCutoff[index] <= 0.1:
+                if presenceRatio[index] >= 0.9:
+                    if firingRate[index] >= 0.2:
+                        if isiViol[index] <= 0.5:
+                            unit = uniqueSpikeClusters[index]
+                            optoUnitsZeta.append(unit)
+
+    return optoUnitsZeta
