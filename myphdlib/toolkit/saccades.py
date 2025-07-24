@@ -52,6 +52,7 @@ def calculateSaccadeAmplitudes(h5file, saccades):
         endTime = session.load('saccades/predicted/left/timestamps')[sac, 1]
         if endTime.size != 1:
             amplitudes.append(0)
+            continue
         relativeEnd = abs(frameTimes - endTime)
         endShape = np.where(relativeEnd == np.min(relativeEnd))[0].shape[0]
         if endShape == 2:
@@ -61,7 +62,7 @@ def calculateSaccadeAmplitudes(h5file, saccades):
         startPoint = pose[startIndex, 0]
         endPoint = pose[endIndex, 0]
         amplitude = abs(endPoint - startPoint)
-        amplitudes.append(amplitude)
+        amplitudes.append(float(amplitude))
     return amplitudes
 
 def calculateSaccadeStartPoint(h5file, saccades):
@@ -79,7 +80,10 @@ def calculateSaccadeStartPoint(h5file, saccades):
     for sac in subsetIndices:
         startIndex = sac
         startPoint = pose[startIndex, 0]
-        startPoints.append(float(startPoint))
+        if startPoint.size != 1:
+            startPoints.append(0)
+        else:
+            startPoints.append(float(startPoint))
     return startPoints
 
 def calculateSaccadeEndPoint(h5file, saccades):
@@ -98,6 +102,7 @@ def calculateSaccadeEndPoint(h5file, saccades):
         endTime = session.load('saccades/predicted/left/timestamps')[sac, 1]
         if endTime.size != 1:
             endPoints.append(0)
+            continue
         relativeEnd = abs(frameTimes - endTime)
         endShape = np.where(relativeEnd == np.min(relativeEnd))[0].shape[0]
         if endShape == 2:
@@ -170,3 +175,14 @@ def binFiringRatesbyMetric(z, ampList, startList, endList, unit):
                 binStartE.append(np.min(values))
     return ampAvg, startAvg, endAvg, binStartA, binStartS, binStartE
 
+def generateSaccadeMetricArray(h5file, ampList, startList, endList):
+    """
+    Assemble all saccade metrics into 1 array for ease of use
+    Required for using the prediction module
+    """
+    session = AnalysisObject(h5file)
+    sacMetrics = np.zeros((len(ampList), 3))
+    sacMetrics[:, 0] = ampList
+    sacMetrics[:, 1] = startList
+    sacMetrics[:, 2] = endList
+    return sacMetrics

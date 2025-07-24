@@ -72,7 +72,8 @@ def plotKDE(h5file, unitList, events, color, start, stop, step, label, saveFig=T
     if avgOnly ==True:
         ax.plot(t, frAvg, color=color, label=label)
     else:
-        ax.plot(t, frAvg, color='k')
+        ax.plot(t, frAvg, color=color)
+    
 
     if saveFig == True:
         plt.savefig(f'{label}-kde', format="svg")

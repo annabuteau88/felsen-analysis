@@ -97,7 +97,7 @@ def defineOptoPopulation(h5file, clusterFile):
     qualityLabels = session.load('metrics/ql')
     optoUnitsZeta = list()
     for index, pVal in enumerate(zetaOpto):
-        if pVal < 0.05:
+        if pVal < 0.01:
             if qualityLabels is not None and qualityLabels[index] in (0, 1):
                     continue
             if ampCutoff[index] <= 0.1:
