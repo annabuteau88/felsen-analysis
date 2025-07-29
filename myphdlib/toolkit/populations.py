@@ -1,5 +1,4 @@
 from toolkit.process import AnalysisObject
-from interface.ephys import Population
 import unit_localizer as ul
 import numpy as np
 from sklearn.decomposition import PCA
@@ -58,7 +57,7 @@ def definePremotorPopulation(h5file, clusterFile):
                 p = pNasal
             elif pTemporal < pNasal:
                 p = pTemporal
-            if p < 0.05:
+            if p < 0.01:
                 if qualityLabels is not None and qualityLabels[index] in (0, 1):
                         continue
                 if ampCutoff[index] <= 0.1:
@@ -122,7 +121,7 @@ def defineVisualPopulation(h5file, clusterFile):
                 p = pLeft
             elif pRight < pLeft:
                 p = pRight
-            if p < 0.05:
+            if p < 0.01:
                 if qualityLabels is not None and qualityLabels[index] in (0, 1):
                         continue
                 if ampCutoff[index] <= 0.1:

@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-from backend.ephys import Population
+from backend.ephysinterface import Population
 
 
 class AnalysisObject():
