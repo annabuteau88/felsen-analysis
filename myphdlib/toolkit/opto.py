@@ -12,17 +12,14 @@ import spikeinterface.sorters as sorters
 from spikeinterface.core import write_binary_recording
 
 
-def removeArtifacts(h5file, basePath, mode, optoChan):
+def removeArtifacts(h5file, basePath, output, mode, optoTimes):
     """
     Use spike interface's remove_artifacts function to remove artifacts and save out a .dat file that can be kilosorted
     Base path must contain in it the Record Node 101 directory!
+    Hasn't been tested yet bc interfacing with anything processing related is annoying and out of the scope of this lol
     """
     session = AnalysisObject(h5file)
     recording = se.OpenEphysBinaryRecordingExtractor(basePath, stream_name=np.str_('Record Node 101#Neuropix-PXI-100.ProbeA-AP'))
-    matrix = session.load('labjack/matrix')
-    opto = matrix[:, optoChan]
-    optoIndices = np.where(np.diff(opto) == 1)[0]
-    optoTimes = session.computeTimestamps(optoIndices)
     optoTimesTotal = list()
     optoListLabels = list()
     for onset in optoTimes:
@@ -33,7 +30,7 @@ def removeArtifacts(h5file, basePath, mode, optoChan):
         optoListLabels.append('offset')     
     optoTimesTotal = np.array(optoTimesTotal)
     recording = spre.remove_artifacts(recording, np.around(optoTimesTotal*30000).astype(int), ms_before = 0.5,ms_after = 3, list_labels=optoListLabels, mode=mode)
-    write_binary_recording(recording, file_paths=[os.path.join(base, 'linearartifact.dat')], dtype="int16")  # or "int16" depending on your analysis pipeline)
+    write_binary_recording(recording, file_paths=[os.path.join(base, f'{output}{mode}artifact.dat')], dtype="int16")  # or "int16" depending on your analysis pipeline)
     return
 
 def plotRawNeuropixelsData(t2plot, folderPath, datPath, vmin=None, vmax=None):
